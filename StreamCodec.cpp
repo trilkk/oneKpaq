@@ -291,10 +291,22 @@ void StreamCodec::LoadStream(std::vector<u8> singleStream)
 
 void StreamCodec::AssignStream(EncodeMode encodeMode, uint shift, const std::vector<u8>& singleStream)
 {
+	_mode = encodeMode;
 	ASSERT(uint(_mode) && _mode <= EncodeMode::ModeLast, "Unknown mode");
+	_shift = shift;
 	ASSERT(_shift && _shift <= 16, "Wrong shift");
 
 	_header.clear();
+	uint prevEnd=0;
+	bool isSingle=_mode!=EncodeMode::Multi&&_mode!=EncodeMode::MultiFast;
+	while (singleStream[prevEnd]||singleStream[prevEnd+1]) {
+		uint headerEnd=singleStream[prevEnd+2]+prevEnd;
+		_header.push_back(std::vector<u8>(singleStream.begin()+prevEnd,singleStream.begin()+headerEnd));
+		prevEnd=headerEnd;
+		if (isSingle) break;
+	}
+	//INFO("prevEnd=%u isSingle=%u", prevEnd, isSingle);
+	_dest=std::vector<u8>(singleStream.begin()+prevEnd+(isSingle?0:2),singleStream.end());
 }
 
 std::vector<u8> StreamCodec::Decode()

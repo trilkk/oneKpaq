@@ -79,16 +79,8 @@ int main(int argc,char **argv)
 		auto src=readFile(std::string(argv[3]));
 
 		StreamCodec s2;
-#if 0
-		{
-			vector<u8> paddedSrc;
-			paddedSrc.resize(10, 0);
-			for(const auto& value : src)
-			{
-				paddedSrc.push_back(value);
-			}
-			s2.AssignStream(encodeMode, shift, paddedSrc);
-		}
+#if 1
+		s2.AssignStream(encodeMode, shift, src);
 #else
 		s2.LoadStream(src);
 #endif
@@ -144,8 +136,9 @@ int main(int argc,char **argv)
 #endif
 
 		fprintf(stdout/* not stderr */, "M mode=%u shift=%u\n", static_cast<unsigned>(s.getMode()), s.GetShift());
-
-		writeFile(std::string(argv[argc-1]), stream);
+		std::vector<u8> outStream;
+		outStream.insert(outStream.end(), stream.begin() + 10, stream.end());
+		writeFile(std::string(argv[argc-1]), outStream);
 
 	}
 	// Default mode is encode to asm.
