@@ -49,7 +49,7 @@ ifeq ($(BITS),32)
 OBJS := $(OBJS) obj/AsmDecode.cpp.o $(foreach decompr,1 2 3 4,obj/onekpaq_cfunc_$(decompr).asm.o)
 endif
 
-all: $(SLINKS)
+all: $(SLINKS) onekpaq_decode
 
 %/:
 	mkdir -p "$@"
@@ -72,6 +72,9 @@ $(foreach decompr,1 2 3 4,$(eval $(call decompressors,$(decompr))))
 
 $(PROG): $(OBJS)
 	$(CXX) $(CFLAGS) -o $(PROG) $(OBJS) 
+
+onekpaq_decode: obj/onekpaq_decode.cpp.o
+	$(CXX) $(CFLAGS) -o onekpaq_decode obj/onekpaq_decode.cpp.o
 
 $(SLINKS): $(PROG)
 	ln -sf $< $@
