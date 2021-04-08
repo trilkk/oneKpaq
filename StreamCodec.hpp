@@ -39,6 +39,7 @@ public:
 	void Encode(const std::vector<std::vector<u8>> &blocks,EncodeMode mode,EncoderComplexity complexity,const std::string &cacheFileName);
 
 	void LoadStream(std::vector<u8> singleStream);
+	void AssignStream(EncodeMode encodeMode, uint shift, const std::vector<u8>& singleStream);
 	std::vector<u8> Decode();
 	std::vector<u8> DecodeAsmStream();
 

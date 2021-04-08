@@ -78,7 +78,7 @@ void StreamCodec::Encode(const std::vector<std::vector<u8>> &blocks,EncodeMode m
 	ASSERT(blocks.size(),"Empty blocks");
 	ASSERT(uint(mode)&&mode<=EncodeMode::ModeLast,"Unknown mode");
 	_mode=mode;
-	ASSERT(uint(mode)&&complexity<=EncoderComplexity::ComplexityLast,"Unknown complexity mode");
+	ASSERT(uint(complexity)&&complexity<=EncoderComplexity::ComplexityLast,"Unknown complexity mode");
 
 	BlockCodec::BlockCodecType bct=StreamModetoBlockCodecType(_mode);
 
@@ -289,6 +289,13 @@ void StreamCodec::LoadStream(std::vector<u8> singleStream)
 	_dest=std::vector<u8>(singleStream.begin()+prevEnd+(isSingle?0:2),singleStream.end());
 }
 
+void StreamCodec::AssignStream(EncodeMode encodeMode, uint shift, const std::vector<u8>& singleStream)
+{
+	ASSERT(uint(_mode) && _mode <= EncodeMode::ModeLast, "Unknown mode");
+	ASSERT(_shift && _shift <= 16, "Wrong shift");
+
+	_header.clear();
+}
 
 std::vector<u8> StreamCodec::Decode()
 {

@@ -65,8 +65,94 @@ int main(int argc,char **argv)
 #else
 	INFO("oneKpaq v" ONEKPAQ_VERSION " 32-bit");
 #endif*/
-	//if (std::string(argv[0]).find("onekpaq_encode")!=std::string::npos) {
-		//if (argc<5) ABORT("usage: onekpaq_encode mode complexity block1 block2 ... blockn output.onekpaq");
+	// Check for decode mode.
+	if (std::string(argv[0]).find("onekpaq_decode")!=std::string::npos)
+	{
+		if (argc!=5) ABORT("usage: onekpaq_decode mode shift input.onekpaq output");
+
+		StreamCodec::EncodeMode encodeMode = StreamCodec::EncodeMode(atoi(argv[1]));
+		uint shift = atoi(argv[2]);
+
+		struct stat st;
+		//ASSERT(::stat(argv[4],&st)==-1,"Destination file exists");
+
+		auto src=readFile(std::string(argv[3]));
+
+		StreamCodec s2;
+#if 0
+		{
+			vector<u8> paddedSrc;
+			paddedSrc.resize(10, 0);
+			for(const auto& value : src)
+			{
+				paddedSrc.push_back(value);
+			}
+			s2.AssignStream(encodeMode, shift, paddedSrc);
+		}
+#else
+		s2.LoadStream(src);
+#endif
+		auto dest=s2.Decode();
+
+		writeFile(std::string(argv[4]),dest);
+	}
+	// Simple encode (to stream that's readable with onekpaq_decode.
+	else if (std::string(argv[0]).find("onekpaq_encode")!=std::string::npos) {
+		if (argc<5) {
+			ABORT("usage: onekpaq_encode mode complexity block1 block2 ... blockn output.onekpaq");
+		}
+
+		StreamCodec::EncodeMode mode=StreamCodec::EncodeMode(atoi(argv[1]));
+		StreamCodec::EncoderComplexity complexity=StreamCodec::EncoderComplexity(atoi(argv[2]));
+
+		std::vector<std::vector<u8>> blocks(argc-4);
+		for (uint i=0;i<uint(argc-4);i++) {
+			blocks[i]=readFile(std::string(argv[i+3]));
+			ASSERT(blocks[i].size(),"Empty/missing file");
+		}
+
+		struct stat st;
+		//ASSERT(::stat(argv[argc-1],&st)==-1,"Destination file exists");
+
+		StreamCodec s;
+		s.Encode(blocks,mode,complexity,"onekpaq_context.cache");
+		auto stream=s.CreateSingleStream();
+
+#ifdef VERIFY_STREAM
+		INFO("Verifying...");
+
+		StreamCodec s2;
+		s2.LoadStream(stream);
+		auto verify=s2.Decode();
+
+		std::vector<u8> src;
+		for (auto &it:blocks)
+			src.insert(src.end(),it.begin(),it.end());
+
+		ASSERT(src.size()==verify.size(),"size mismatch");
+
+		for (uint i=0;i<src.size();i++)
+			ASSERT(src[i]==verify[i],"%u: %02x!=%02x",i,src[i],verify[i]);
+		INFO("Data verified");
+
+
+		INFO("Verifying ASM stream...");
+		auto verify2=s.DecodeAsmStream();
+		for (uint i=0;i<src.size();i++)
+			ASSERT(src[i]==verify2[i],"%u: %02x!=%02x",i,src[i],verify2[i]);
+		INFO("ASM Data verified");
+#endif
+
+		fprintf(stdout/* not stderr */, "M mode=%u shift=%u\n", static_cast<unsigned>(s.getMode()), s.GetShift());
+
+		writeFile(std::string(argv[argc-1]), stream);
+
+	}
+	// Default mode is encode to asm.
+	else {
+		if (argc<5) {
+			ABORT("usage: onekpaq_encode mode complexity block1 block2 ... blockn output.onekpaq");
+		}
 
 		StreamCodec::EncodeMode mode=StreamCodec::EncodeMode(atoi(argv[1]));
 		StreamCodec::EncoderComplexity complexity=StreamCodec::EncoderComplexity(atoi(argv[2]));
@@ -129,31 +215,8 @@ int main(int argc,char **argv)
 		fprintf(stdout/* not stderr */, "P offset=%zu shift=%u\n", src1.size(), s.GetShift());
 
 		writeFile(std::string(argv[argc-1]),combine/*stream*/);
+        }
 
-	/*} else if (std::string(argv[0]).find("onekpaq_decode")!=std::string::npos) {
-		if (argc!=3) ABORT("usage: onekpaq_decode input.onekpaq output");
-
-		struct stat st;
-		//ASSERT(::stat(argv[2],&st)==-1,"Destination file exists");
-
-		auto src=readFile(std::string(argv[1]));
-
-		StreamCodec s2;
-		s2.LoadStream(src);
-		auto dest=s2.Decode();
-
-#ifndef __x86_64__
-		// now same thing with asm-decoder
-		INFO("mode=%u", s2.getMode());
-		auto asmVerify=AsmDecode(s2.GetAsmDest1(),s2.GetAsmDest2(),s2.getMode(),s2.GetShift());
-
-		// asm decoder does not know anything about size, we can only verify contents
-		for (uint i=0;i<dest.size();i++)
-			ASSERT(dest[i]==asmVerify[i],"%u: %02x!=%02x",i,dest[i],asmVerify[i]);
-		INFO("Data verified");
-#endif
-
-		writeFile(std::string(argv[2]),dest);
-	} else ABORT("use onekpaq_encode or onekpaq_decode");*/
 	return 0;
 }
+
